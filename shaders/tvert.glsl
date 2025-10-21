@@ -21,6 +21,7 @@ out vec4 vColor;
 out vec2 light;
 out vec4 pos;
 out vec3 shadowNDCPos;
+out vec3 shadowModelViewPos;
 out mat3 TBN;
 
 vec4 distort(vec4 shadowNDCPosHom) {
@@ -37,7 +38,7 @@ vec3 getShadowCoords(vec3 fragPos) {
 	vec4 shadowNDCPosHom = shadowProjection * vec4(shadowModelViewPos, 1.);
 
 	shadowNDCPosHom = distort(shadowNDCPosHom);
-	shadowNDCPosHom.z += 0.000001;
+	shadowNDCPosHom.z -= 0.00001;
 
 	vec3 shadowNDCPos = (shadowNDCPosHom.xyz / shadowNDCPosHom.w) * 0.5 + 0.5;
 	return shadowNDCPos;
@@ -47,8 +48,8 @@ void main() {
 	vColor = vaColor;
 	light = vaUV2 * (1. / 256.) + (1. / 32.);
 	vec3 norm = mat3(gbufferModelViewInverse) * normalMatrix * vaNormal;
-	vec3 tangent = mat3(gbufferModelViewInverse) * at_tangent.xyz;
-	TBN = mat3(tangent, cross(tangent, norm), norm);
+	vec3 tangent = mat3(gbufferModelViewInverse) * normalMatrix * at_tangent.xyz;
+	TBN = mat3(tangent, cross(norm, tangent), norm);
 #ifdef HAND
 	texCoord = vaUV0;
 	pos = gl_ProjectionMatrix * vec4(mat3(gbufferModelViewInverse) * (gbufferModelView * vec4(vaPosition, 1.)).xyz, 1.);
@@ -65,6 +66,8 @@ void main() {
 
 	vec3 fragPos = (gbufferProjectionInverse * pos).xyz;
 	fragPos = (gbufferModelViewInverse * vec4(fragPos, 1.)).xyz;
+	vec4 shadowModelViewP = vec4((shadowModelView * vec4(fragPos, 1.)).xyz, 1.);
+	shadowModelViewPos = (shadowProjection * shadowModelViewP).xyz;
 
 	shadowNDCPos = getShadowCoords(fragPos);
 }
